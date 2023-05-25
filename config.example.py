@@ -1,0 +1,3 @@
+API_ID = 123
+API_HASH = ""
+CHATS = []
