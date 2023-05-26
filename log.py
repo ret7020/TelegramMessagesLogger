@@ -17,6 +17,16 @@ sqlite_connection = sqlite3.connect('db')
 cursor = sqlite_connection.cursor()
 client = TelegramClient('logger', API_ID, API_HASH)
 
+@client.on(events.NewMessage(chats=[TG_ID]))
+async def new_message_ls(event):
+    if event.raw_text.startswith("/logger"):
+        raw = event.raw_text.replace("/logger", "").strip().split()
+        if raw:
+            cmd = raw[0]
+            args = raw[0:]
+            print(cmd)
+            print(args)
+
 @client.on(events.NewMessage(chats=CHATS))
 async def new_message_handler(event):
     save_message(event.message.peer_id.channel_id, event.message.id, event.raw_text)
@@ -26,14 +36,19 @@ async def delete_message_handler(event):
     logging.info("Delete message")
     # event.original_update.channel_id
     for message_id in event.deleted_ids:
-        cursor.execute("UPDATE `messages` SET `deleted` = 1 WHERE `chat_id` = ? AND `message_id` = ?", (event.original_update.channel_id, message_id))
+        already_logged_events_times = cursor.execute("SELECT `events_times` FROM `messages` WHERE `chat_id` = ? AND `message_id` = ?", (event.original_update.channel_id, message_id)).fetchall()
+        if already_logged_events_times:
+            print(already_logged_events_times)
+            already_logged_events_times = json.loads(already_logged_events_times[0][0])
+            already_logged_events_times.append(str(datetime.datetime.now()))
+        cursor.execute("UPDATE `messages` SET `deleted` = 1, `events_times` = ? WHERE `chat_id` = ? AND `message_id` = ?", (json.dumps(already_logged_events_times), event.original_update.channel_id, message_id))
     sqlite_connection.commit()    
 
 @client.on(events.MessageEdited(chats=CHATS))
 async def edit_messages_handler(event):
     logging.info("Edit message")
-    print(event.message.id, event.message.peer_id.channel_id)
-    print(event.raw_text)
+    # print(event.message.id, event.message.peer_id.channel_id)
+    # print(event.raw_text)
     logged_message = cursor.execute("SELECT `texts`, `events_times` FROM `messages` WHERE `chat_id` = ? AND `message_id` = ?", (event.message.peer_id.channel_id, event.message.id)).fetchall()
     if logged_message:
         logged_texts, logged_times = json.loads(logged_message[0][0]), json.loads(logged_message[0][1])
