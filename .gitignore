@@ -1,4 +1,5 @@
+.env
+messages.db
+logger.session
+logger.session-journal
 __pycache__/
-db
-config.py
-*.session

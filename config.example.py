@@ -1,4 +1,0 @@
-API_ID = 123
-API_HASH = ""
-CHATS = []
-TG_ID = 123
